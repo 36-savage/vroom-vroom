@@ -117,7 +117,7 @@ float getWeight()
             activeLeft++;
     }
     // printf("\tactiveLeft = %d", activeLeft);
-    if ((activeLeft >= 3) && (activeLeft <= 5))
+    if ((activeLeft >= 3) && (activeLeft <= 5) && (filted[0] == 1))
         state = PREPARE_LEFT;
 
     for (int i = 7; i > 2; i--)
@@ -126,7 +126,7 @@ float getWeight()
             activeRight++;
     }
     // printf("\tactiveRight = %d", activeRight);
-    if ((activeRight >= 3) && (activeRight <= 5))
+    if ((activeRight >= 3) && (activeRight <= 5) && (filted[7] == 1))
         state = PREPARE_RIGHT;
 
     if ((filted[3] == 1) && (filted[4] == 1))
@@ -162,12 +162,12 @@ void Drive()
         break;
     case TURN_LEFT:
         leftRatio = -1.0;
-        rightRatio = 4.0;
+        rightRatio = base;
         if ((sensors[5] == 128))
             state = DEFAULT;
         break;
     case TURN_RIGHT:
-        leftRatio = 4.0;
+        leftRatio = base;
         rightRatio = -1.0;
         if ((sensors[5] >= 1) && (sensors[5] <= 3))
             state = DEFAULT;
@@ -178,13 +178,13 @@ void Drive()
 
         if (currWeight > 0)
         {
-            leftRatio = base + 0.5;
+            leftRatio = base + 1.0;
             rightRatio = base - currWeight;
         }
         else if (currWeight < 0)
         {
             leftRatio = base + currWeight;
-            rightRatio = base + 0.5;
+            rightRatio = base + 1.0;
         }
         else
         {
