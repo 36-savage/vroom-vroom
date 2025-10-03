@@ -12,7 +12,6 @@
   /*---------------------Định nghĩa---------------------*/
 
   // Signal
-  #define NOP  -1
   #define DEFAULT   0
   #define BLANK_SIGNAL 1
   #define PREPARE_LEFT 2
@@ -20,7 +19,6 @@
   #define TURN_LEFT 4
   #define TURN_RIGHT 5
   #define FULL_SIGNAL 6
-  #define STOP_SIGNAL 7
   #define MAX_SPEED 10
   
   // Sensors
@@ -35,17 +33,18 @@
   // Khai báo biến cho các sensors
   unsigned short threshold[NB_GROUND_SENS] = {300, 300, 300, 300, 300, 300, 300, 300};
   unsigned int filted[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  const float weights[8] = {-6, -4, -3, -1, 1, 3, 4, 6};
-  const float weightMultiplier = 0.5;
+  const float weights[8] = {-3.5, -2.5, -1, -0.5, 0.5, 1, 2.5, 3.5};
   float prevWeight = 0;
   float currWeight = 0;
   int state = DEFAULT;
-  unsigned char currSensors = 0;
+  unsigned char sensors[6] = {0, 0, 0, 0, 0, 0};
+  bool stop = false;
+  bool noise = false;
 
   // Velocities
-  double leftRatio = 0.0;
-  double rightRatio = 0.0;
-  const double base = 4.0;
+  float leftRatio = 0.0;
+  float rightRatio = 0.0;
+  const float base = 4.0;
 
   // Sensors
   WbDeviceTag gs[NB_GROUND_SENS];
@@ -79,29 +78,45 @@
 
   // Trả về vi trí của xe
 void getSensors(){
+  for (int i = 0; i < 5; i++) sensors[i] = sensors[i+1];
   for (int i = 0; i < NB_GROUND_SENS; i++) {
-    currSensors <<= 1;
-    currSensors |= (filted[i] & 1);
+    sensors[5] <<= 1;
+    sensors[5] |= (filted[i] & 1);
   };
 }
+
+void stopHandler(){
+  stop = true;
+  for (int i = 0; i < 6; i++){
+    if (sensors[i] != 255){
+      stop = false;
+      break; 
+    }
+  }
+}
       
+void noiseHandler(){
+  if ((sensors[4] != 24) && (sensors[4] > sensors[3]) && ((sensors[5] == 24) || (sensors[5] == 16) || (sensors[5] == 8))){
+    printf("\n\t\tNoise detected, ignoring signal!");
+    noise = true;
+  }
+}
 
-
-int getWeight(){
+float getWeight(){
   int activeLeft = 0;
   int activeRight = 0;
   
   for (int i = 0; i < 5; i++){
     if (filted[i] == 1) activeLeft++;
   }
-  printf("\tactiveLeft = %d", activeLeft);
-  if (activeLeft >= 4) state = PREPARE_LEFT;
+  //printf("\tactiveLeft = %d", activeLeft);
+  if ((activeLeft >= 3) && (activeLeft <= 5)) state = PREPARE_LEFT;
   
   for (int i = 7; i > 2; i--){
     if (filted[i] == 1) activeRight++;
   }
-  printf("\tactiveRight = %d", activeRight);
-  if (activeRight >= 4) state = PREPARE_RIGHT;
+  //printf("\tactiveRight = %d", activeRight);
+  if ((activeRight >= 3) && (activeRight <= 5)) state = PREPARE_RIGHT;
   
   if ((filted[3] == 1) && (filted[4] == 1)) return 0;
   for (int i = 0; i < 4; i++){
@@ -114,35 +129,39 @@ int getWeight(){
 void Drive(){
   switch(state){
     case PREPARE_LEFT:
+      noiseHandler();
       leftRatio = base;
       rightRatio = base;
-      if ((currSensors == 0) || (currSensors == 255)) state = TURN_LEFT; 
+      if ((sensors[5] == 0) || (sensors[5] == 255)) state = TURN_LEFT; 
       break;
     case PREPARE_RIGHT:
+      noiseHandler();
       leftRatio = base;
       rightRatio = base;
-      if ((currSensors == 0) || (currSensors == 255)) state = TURN_RIGHT;
+      if ((sensors[5] == 0) || (sensors[5] == 255)) state = TURN_RIGHT;
       break;
     case TURN_LEFT:
       leftRatio = -1.0;
-      rightRatio = 3.5;
-      if ((currSensors == 128)) state = DEFAULT;
+      rightRatio = 4.0;
+      if ((sensors[5] == 128)) state = DEFAULT;
       break;
     case TURN_RIGHT:
-      leftRatio = 3.5;
+      leftRatio = 4.0;
       rightRatio = -1.0;
-      if ((currSensors >= 1) && (currSensors <= 3)) state = DEFAULT;
+      if ((sensors[5] >= 1) && (sensors[5] <= 3)) state = DEFAULT;
       break;
     case DEFAULT:
+      noiseHandler();
       currWeight = getWeight();
+      
       if (currWeight > 0){
       // lower rightRatio
         leftRatio = base;
-        rightRatio = base - currWeight*weightMultiplier;      
+        rightRatio = base - currWeight;      
       }
       else if (currWeight < 0){
       // lower leftRatio
-        leftRatio = base + currWeight*weightMultiplier;
+        leftRatio = base + currWeight;
         rightRatio = base;
       }
       else {
@@ -200,18 +219,33 @@ void Drive(){
       {
         printf ("%u" , filted[i] );
       };
-      printf("\tCurrent sensors: %d", currSensors);
+      printf("\tCurrent sensors: %d", sensors[2]);
       printf("\tCurrent state: %d", state);
       
     /*----------Điều khiển xe----------*/
       Drive();
-      printf("\tCurrent weight: %f", currWeight);
+      //printf("\tCurrent weight: %f", currWeight);
       
+      if (noise){
+        leftRatio = base;
+        rightRatio = base;
+        state = DEFAULT;
+        noise = false;
+      }
     // Điều chỉnh tốc độ động cơ
+      printf("\tLeft/Right Ratio: %f/%f", leftRatio, rightRatio);
       wb_motor_set_velocity(left_motor,leftRatio * MAX_SPEED);
       wb_motor_set_velocity(right_motor,rightRatio * MAX_SPEED);
+      
+      
+      stopHandler();
+      if (stop){
+        printf("\n\t\tSTOPPING!");
+        wb_motor_set_velocity(left_motor, 0);
+        wb_motor_set_velocity(right_motor, 0);
+        break;
+      }
     };
     wb_robot_cleanup();
     return 0;
   };
-      
