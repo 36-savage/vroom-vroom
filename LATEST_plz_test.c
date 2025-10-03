@@ -13,12 +13,10 @@
 
   // Signal
   #define DEFAULT   0
-  #define BLANK_SIGNAL 1
-  #define PREPARE_LEFT 2
-  #define PREPARE_RIGHT 3
-  #define TURN_LEFT 4
-  #define TURN_RIGHT 5
-  #define FULL_SIGNAL 6
+  #define PREPARE_LEFT 1
+  #define PREPARE_RIGHT 2
+  #define TURN_LEFT 3
+  #define TURN_RIGHT 4
   #define MAX_SPEED 10
   
   // Sensors
@@ -34,7 +32,6 @@
   unsigned short threshold[NB_GROUND_SENS] = {300, 300, 300, 300, 300, 300, 300, 300};
   unsigned int filted[8] = {0, 0, 0, 0, 0, 0, 0, 0};
   const float weights[8] = {-3.5, -2.5, -1, -0.5, 0.5, 1, 2.5, 3.5};
-  float prevWeight = 0;
   float currWeight = 0;
   int state = DEFAULT;
   unsigned char sensors[6] = {0, 0, 0, 0, 0, 0};
@@ -54,12 +51,6 @@
 
   // Motors
   WbDeviceTag left_motor, right_motor;
-
-  // Vận tốc MIN , MAX
-  void constrain(double *value, double min, double max) {
-    if (*value > max) *value = max;
-    if (*value < min) *value = min;
-  };
 
   /*----------------Phần code code set up---------------*/
 
@@ -156,13 +147,13 @@ void Drive(){
       
       if (currWeight > 0){
       // lower rightRatio
-        leftRatio = base;
+        leftRatio = base+0.5;
         rightRatio = base - currWeight;      
       }
       else if (currWeight < 0){
       // lower leftRatio
         leftRatio = base + currWeight;
-        rightRatio = base;
+        rightRatio = base+0.5;
       }
       else {
         leftRatio = base;
