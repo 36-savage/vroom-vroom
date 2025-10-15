@@ -16,9 +16,13 @@
 #define PREPARE_RIGHT 2
 #define TURN_LEFT 3
 #define TURN_RIGHT 4
-#define PREPARE_CIRCLE 5
-#define CIRCLE 6
-#define TURN_RIGHT_CIRCLE 7
+#define LEFT_TRANSITION 5
+#define RIGHT_TRANSITION 6
+#define SWITCH_LEFT 7
+#define SWITCH_RIGHT 8
+#define PREPARE_CIRCLE 9
+#define CIRCLE 10
+#define TURN_RIGHT_CIRCLE 11
 #define MAX_SPEED 10
 
 // Sensors
@@ -220,8 +224,25 @@ void Drive()
         noiseHandler();
         leftRatio = base;
         rightRatio = base;
-        if ((sensors[5] == 0) || (sensors[5] == 255))
+        if (sensors[5] == 0)
             state = TURN_LEFT;
+        else if ((sensors[5] == 8) || (sensors[5] == 12) || (sensors[5] == 16) || (sensors[5] == 24) || (sensors[5] == 48))
+            state = LEFT_TRANSITION;
+        break;
+    case LEFT_TRANSITION:
+        noiseHandler();
+        leftRatio = base;
+        rightRatio = base;
+        if (sensors[5] == 255)
+            state = TURN_LEFT;
+        else if (sensors[5] == 0)
+            state = SWITCH_LEFT;
+        break;
+    case SWITCH_LEFT:
+        leftRatio = 3.6;
+        rightRatio = base;
+        if (sensors[5] > 0)
+            state = PREPARE_RIGHT;
         break;
     case PREPARE_RIGHT:
         noiseHandler();
@@ -389,7 +410,7 @@ int main()
             printf("\n\t\tSTOPPING!");
             wb_motor_set_velocity(left_motor, base);
             wb_motor_set_velocity(right_motor, base);
-            if ((getTime() - stopTime) > 2.0)
+            if ((getTime() - stopTime) > 1.5)
             {
                 printf("\n\t\tStopped at %f seconds", wb_robot_get_time());
                 wb_motor_set_velocity(left_motor, 0);
