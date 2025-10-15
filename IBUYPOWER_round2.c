@@ -16,6 +16,9 @@
 #define PREPARE_RIGHT 2
 #define TURN_LEFT 3
 #define TURN_RIGHT 4
+#define PREPARE_CIRCLE 5
+#define CIRCLE 6
+#define TURN_RIGHT_CIRCLE 7
 #define MAX_SPEED 10
 
 // Sensors
@@ -36,6 +39,9 @@ int state = DEFAULT;
 unsigned char sensors[6] = {0, 0, 0, 0, 0, 0};
 bool stop = false;
 double stopTime = -1.0;
+double prevTime = -1.0;
+double currTime = -1.0;
+
 bool noise = false;
 
 // Velocities
@@ -44,7 +50,6 @@ float rightRatio = 0.0;
 const float base = 5.0;
 float OPturnRatio = -1.5;
 float turnRatio = 1.5;
-
 
 // Sensors
 WbDeviceTag gs[NB_GROUND_SENS];
@@ -58,7 +63,7 @@ WbDeviceTag left_motor, right_motor;
 /*----------------Phần code code set up---------------*/
 
 /* Hàm đọc giá trị sensors
-  KHÔNG ĐƯỢC THIẾU!!!     */
+KHÔNG ĐƯỢC THIẾU!!!     */
 void ReadSensors()
 {
     unsigned short gs_value[NB_GROUND_SENS] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -85,6 +90,11 @@ void getSensors()
     };
 }
 
+double getTime()
+{
+    return wb_robot_get_time();
+}
+
 // Kiểm tra điều kiện dừng
 void stopHandler()
 {
@@ -97,45 +107,97 @@ void stopHandler()
             return;
         }
     }
-    if (stopTime == -1.0){
-      stopTime = wb_robot_get_time();
-      printf("\n\t\tStopping at %f seconds", stopTime);
+    if (stopTime == -1.0)
+    {
+        stopTime = getTime();
+        printf("\n\t\tStopping at %f seconds", stopTime);
     }
 }
 
 // Kiểm tra tín hiệu nhiễu
 void noiseHandler()
 {
-    if ((sensors[4] != 24) && (sensors[4] > sensors[3]) && ((sensors[5] == 24) || (sensors[5] == 16) || (sensors[5] == 8)))
+    if (
+        ((sensors[3] == 8) || (sensors[3] == 12) || (sensors[3] == 16) || (sensors[3] == 24) || (sensors[3] == 48)) &&
+        ((sensors[4] != 8) && (sensors[4] != 12) && (sensors[4] != 16) && (sensors[4] != 24) && (sensors[4] != 48)) &&
+        ((sensors[5] == 8) || (sensors[5] == 12) || (sensors[5] == 16) || (sensors[5] == 24) || (sensors[5] == 48)))
     {
         printf("\n\t\tNoise detected, ignoring signal!");
         noise = true;
     }
 }
 
-// Xử lý tín hiệu sensors, tìm trọng số
-float getWeight()
+int circleHandler()
 {
-    int activeLeft = 0;
-    int activeRight = 0;
-
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 6; i++)
     {
-        if (filted[i] == 1)
-            activeLeft++;
+        if ((sensors[i] < 8) || (sensors[i] > 24))
+            return 1;
     }
-    // printf("\tactiveLeft = %d", activeLeft);
-    if ((activeLeft >= 3) && (activeLeft <= 5) && (filted[0] == 1))
-        state = PREPARE_LEFT;
+    return 0;
+}
 
+// Xử lý tín hiệu sensors, tìm trọng số
+
+float getWeightCircle()
+{
+    int activeRight = 0;
     for (int i = 7; i > 2; i--)
     {
         if (filted[i] == 1)
             activeRight++;
     }
-    // printf("\tactiveRight = %d", activeRight);
     if ((activeRight >= 3) && (activeRight <= 5) && (filted[7] == 1))
+    {
+        state = TURN_RIGHT;
+        return 0;
+    }
+
+    if ((filted[3] == 1) && (filted[4] == 1))
+        return 0;
+    for (int i = 0; i < 4; i++)
+    {
+        if (filted[i] == 1)
+            return weights[i];
+        else if (filted[7 - i] == 1)
+            return weights[7 - i];
+    }
+    return 0;
+}
+
+float getWeight()
+{
+    if (sensors[5] == 255)
+    {
+        printf("\n\t\tPrepare circle");
+        state = PREPARE_CIRCLE;
+        prevTime = getTime();
+        return 0;
+    }
+
+    int activeLeft = 0;
+    for (int i = 0; i < 5; i++)
+    {
+        if (filted[i] == 1)
+            activeLeft++;
+    }
+    if ((activeLeft >= 3) && (activeLeft <= 5) && (filted[0] == 1))
+    {
+        state = PREPARE_LEFT;
+        return 0;
+    }
+
+    int activeRight = 0;
+    for (int i = 7; i > 2; i--)
+    {
+        if (filted[i] == 1)
+            activeRight++;
+    }
+    if ((activeRight >= 3) && (activeRight <= 5) && (filted[7] == 1))
+    {
         state = PREPARE_RIGHT;
+        return 0;
+    }
 
     if ((filted[3] == 1) && (filted[4] == 1))
         return 0;
@@ -200,6 +262,51 @@ void Drive()
             rightRatio = base;
         }
         break;
+    case PREPARE_CIRCLE:
+        leftRatio = base;
+        rightRatio = base;
+        int activeRight = 0;
+        currTime = getTime();
+        if (currTime - prevTime >= 0.1)
+        {
+            printf("\n\t\tDELAY IS OVER");
+            for (int i = 7; i > 2; i--)
+            {
+                if (filted[i] == 1)
+                    activeRight++;
+            }
+            if ((activeRight >= 3) && (activeRight <= 5) && (filted[7] == 1))
+            {
+                state = TURN_RIGHT_CIRCLE;
+            }
+        }
+        break;
+    case TURN_RIGHT_CIRCLE:
+        leftRatio = turnRatio;
+        rightRatio = OPturnRatio;
+        if ((sensors[5] >= 1) && (sensors[5] <= 3))
+            state = CIRCLE;
+        break;
+
+    case CIRCLE:
+        noiseHandler();
+        currWeight = getWeightCircle();
+
+        if (currWeight > 0)
+        {
+            leftRatio = base + 1.0;
+            rightRatio = base - currWeight;
+        }
+        else if (currWeight < 0)
+        {
+            leftRatio = base + currWeight;
+            rightRatio = base + 1.0;
+        }
+        else
+        {
+            leftRatio = base;
+            rightRatio = base;
+        }
     }
 }
 
@@ -210,7 +317,7 @@ int main()
     /*------------------Khởi động robot------------------*/
 
     /* Khởi động robot
-      KHÔNG ĐƯỢC BỎ!!! */
+    KHÔNG ĐƯỢC BỎ!!! */
     wb_robot_init();
 
     // Khởi động camera
@@ -274,8 +381,6 @@ int main()
         printf("\tLeft/Right Ratio: %f/%f", leftRatio, rightRatio);
         wb_motor_set_velocity(left_motor, leftRatio * MAX_SPEED);
         wb_motor_set_velocity(right_motor, rightRatio * MAX_SPEED);
-        double testVar = wb_robot_get_time();
-        printf("\n\t\tCurrent time: %f", testVar);
 
         // Kiểm tra điều kiện dừng và dừng robot nếu thoả mãn điều kiện
         stopHandler();
@@ -284,11 +389,12 @@ int main()
             printf("\n\t\tSTOPPING!");
             wb_motor_set_velocity(left_motor, base);
             wb_motor_set_velocity(right_motor, base);
-            if ((wb_robot_get_time() - stopTime) > 2.0){
-              printf("\n\t\tStopped at %f seconds", wb_robot_get_time());
-              wb_motor_set_velocity(left_motor, 0);
-              wb_motor_set_velocity(right_motor, 0);
-              break;
+            if ((getTime() - stopTime) > 2.0)
+            {
+                printf("\n\t\tStopped at %f seconds", wb_robot_get_time());
+                wb_motor_set_velocity(left_motor, 0);
+                wb_motor_set_velocity(right_motor, 0);
+                break;
             }
         }
     };
