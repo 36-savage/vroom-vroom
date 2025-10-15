@@ -41,7 +41,10 @@ bool noise = false;
 // Velocities
 float leftRatio = 0.0;
 float rightRatio = 0.0;
-const float base = 4.0;
+const float base = 5.0;
+float OPturnRatio = -1.5;
+float turnRatio = 1.5;
+
 
 // Sensors
 WbDeviceTag gs[NB_GROUND_SENS];
@@ -166,14 +169,14 @@ void Drive()
             state = TURN_RIGHT;
         break;
     case TURN_LEFT:
-        leftRatio = -1.0;
-        rightRatio = base;
+        leftRatio = OPturnRatio;
+        rightRatio = turnRatio;
         if ((sensors[5] == 128))
             state = DEFAULT;
         break;
     case TURN_RIGHT:
-        leftRatio = base;
-        rightRatio = -1.0;
+        leftRatio = turnRatio;
+        rightRatio = OPturnRatio;
         if ((sensors[5] >= 1) && (sensors[5] <= 3))
             state = DEFAULT;
         break;
