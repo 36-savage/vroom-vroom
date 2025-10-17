@@ -229,6 +229,17 @@ void Drive()
         else if ((sensors[5] == 8) || (sensors[5] == 12) || (sensors[5] == 16) || (sensors[5] == 24) || (sensors[5] == 48))
             state = LEFT_TRANSITION;
         break;
+
+    case PREPARE_RIGHT:
+        noiseHandler();
+        leftRatio = base;
+        rightRatio = base;
+        if (sensors[5] == 0)
+            state = TURN_RIGHT;
+        else if ((sensors[5] == 8) || (sensors[5] == 12) || (sensors[5] == 16) || (sensors[5] == 24) || (sensors[5] == 48))
+            state = RIGHT_TRANSITION;
+        break;
+
     case LEFT_TRANSITION:
         noiseHandler();
         leftRatio = base;
@@ -238,31 +249,45 @@ void Drive()
         else if (sensors[5] == 0)
             state = SWITCH_LEFT;
         break;
+
+    case RIGHT_TRANSITION:
+        noiseHandler();
+        leftRatio = base;
+        rightRatio = base;
+        if (sensors[5] == 255)
+            state = TURN_RIGHT;
+        else if (sensors[5] == 0)
+            state = SWITCH_RIGHT;
+        break;
+
     case SWITCH_LEFT:
         leftRatio = 3.6;
         rightRatio = base;
         if (sensors[5] > 0)
             state = PREPARE_RIGHT;
         break;
-    case PREPARE_RIGHT:
-        noiseHandler();
+
+    case SWITCH_RIGHT:
         leftRatio = base;
-        rightRatio = base;
-        if ((sensors[5] == 0) || (sensors[5] == 255))
-            state = TURN_RIGHT;
+        rightRatio = 3.6;
+        if (sensors[5] > 0)
+            state = PREPARE_LEFT;
         break;
+
     case TURN_LEFT:
         leftRatio = OPturnRatio;
         rightRatio = turnRatio;
-        if ((sensors[5] == 128))
+        if (sensors[5] == 128)
             state = DEFAULT;
         break;
+
     case TURN_RIGHT:
         leftRatio = turnRatio;
         rightRatio = OPturnRatio;
-        if ((sensors[5] >= 1) && (sensors[5] <= 3))
+        if ((sensors[5] == 1)
             state = DEFAULT;
         break;
+
     case DEFAULT:
         noiseHandler();
         currWeight = getWeight();
