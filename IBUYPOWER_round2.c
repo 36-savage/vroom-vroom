@@ -284,7 +284,7 @@ void Drive()
     case TURN_RIGHT:
         leftRatio = turnRatio;
         rightRatio = OPturnRatio;
-        if ((sensors[5] == 1)
+        if (sensors[5] == 1)
             state = DEFAULT;
         break;
 
