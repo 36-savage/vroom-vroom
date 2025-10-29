@@ -59,6 +59,9 @@ const float base = 5.0;
 float OPturnRatio = -1.5;
 float turnRatio = 1.5;
 
+// Timing
+float ninetydegturntiming = 0.4;
+
 // Sensors
 WbDeviceTag gs[NB_GROUND_SENS];
 
@@ -249,7 +252,10 @@ void Drive()
         if (activeTotal >= 5)
             state = TURN_LEFT;
         else if (activeTotal == 0)
+        {
             state = SWITCH_LEFT;
+            prevTime = getTime();
+        }
         break;
 
     case RIGHT_TRANSITION:
@@ -263,17 +269,27 @@ void Drive()
         break;
 
     case SWITCH_LEFT:
-        leftRatio = 3.6;
-        rightRatio = base;
-        if (activeTotal != 0)
-            state = PREPARE_RIGHT;
+        currTime = getTime();
+        rightRatio = turnRatio;
+        leftRatio = OPturnRatio;
+        if (currTime - prevTime >= ninetydegturntiming)
+        {
+            rightRatio = base;
+            leftRatio = base;
+            if (activeTotal != 0) state = TURN_RIGHT;
+        }
         break;
 
     case SWITCH_RIGHT:
-        leftRatio = base;
-        rightRatio = 3.6;
-        if (activeTotal != 0)
-            state = PREPARE_LEFT;
+        currTime = getTime();
+        rightRatio = OPturnRatio;
+        leftRatio = turnRatio;
+        if (currTime - prevTime >= ninetydegturntiming)
+        {
+            rightRatio = base;
+            leftRatio = base;
+            if (activeTotal != 0) state = TURN_LEFT;
+        }
         break;
 
     case TURN_LEFT:
