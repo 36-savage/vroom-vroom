@@ -168,7 +168,7 @@ int circleHandler()
 
 float getWeightCircle()
 {
-    if ((activeRight >= 3) && (filted[7] == 1))
+    if (activeTotal >= 4)
     {
         state = TURN_RIGHT;
         return 0;
