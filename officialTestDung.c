@@ -37,7 +37,7 @@
 // Khai báo biến cho các sensors
 unsigned short threshold[NB_GROUND_SENS] = {300, 300, 300, 300, 300, 300, 300, 300};
 unsigned int filted[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-const float weights[8] = {-3.5, -2.5, -1, -0.5, 0.5, 1, 2.5, 3.5};
+const float weights[8] = {-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5};
 float currWeight = 0;
 int state = DEFAULT;
 unsigned char sensors[6] = {0, 0, 0, 0, 0, 0};
@@ -106,10 +106,10 @@ void getActive()
     for (int i = 0; i < 8; i++)
         if (filted[i] == 1)
             activeTotal++;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 4; i++)
         if (filted[i] == 1)
             activeLeft++;
-    for (int i = 7; i > 2; i--)
+    for (int i = 7; i > 3; i--)
         if (filted[i] == 1)
             activeRight++;
     for (int i = 3; i < 5; i++)
@@ -168,13 +168,13 @@ int circleHandler()
 
 float getWeightCircle()
 {
-    if ((activeRight >= 3) && (activeRight <= 5) && (filted[7] == 1))
+    if ((activeRight >= 3) && (filted[7] == 1))
     {
         state = TURN_RIGHT;
         return 0;
     }
 
-    if ((filted[3] == 1) && (filted[4] == 1))
+    if (activeCenter == 2)
         return 0;
     for (int i = 0; i < 4; i++)
     {
@@ -196,19 +196,19 @@ float getWeight()
         return 0;
     }
 
-    if ((activeLeft >= 3) && (activeLeft <= 5) && (filted[0] == 1))
+    if ((activeLeft >= 3) && (filted[0] == 1))
     {
         state = PREPARE_LEFT;
         return 0;
     }
 
-    if ((activeRight >= 3) && (activeRight <= 5) && (filted[7] == 1))
+    if ((activeRight >= 3) && (filted[7] == 1))
     {
         state = PREPARE_RIGHT;
         return 0;
     }
 
-    if ((filted[3] == 1) && (filted[4] == 1))
+    if (activeCenter == 2)
         return 0;
     for (int i = 0; i < 4; i++)
     {
@@ -265,7 +265,10 @@ void Drive()
         if (activeTotal >= 5)
             state = TURN_RIGHT;
         else if (activeTotal == 0)
+        {
             state = SWITCH_RIGHT;
+            prevTime = getTime();
+        }
         break;
 
     case SWITCH_LEFT:
@@ -281,10 +284,15 @@ void Drive()
         break;
 
     case SWITCH_RIGHT:
-        leftRatio = base;
-        rightRatio = 3.6;
-        if (activeTotal != 0)
-            state = PREPARE_LEFT;
+        currTime = getTime();
+        rightRatio = OPturnRatio;
+        leftRatio = turnRatio;
+        if (currTime - prevTime >= ninetydegturntiming)
+        {
+            rightRatio = base;
+            leftRatio = base;
+            if (activeTotal != 0) state = TURN_LEFT;
+        }
         break;
 
     case TURN_LEFT:
@@ -322,13 +330,14 @@ void Drive()
         }
         break;
     case PREPARE_CIRCLE:
+        noiseHandler();
         leftRatio = base;
         rightRatio = base;
         currTime = getTime();
         if (currTime - prevTime >= 0.1)
         {
             printf("\n\t\tDELAY IS OVER");
-            if ((activeRight >= 3) && (activeRight <= 5) && (filted[7] == 1))
+            if ((activeRight >= 3) && (activeRight <= 4) && (filted[7] == 1))
             {
                 state = TURN_RIGHT_CIRCLE;
             }
@@ -337,7 +346,7 @@ void Drive()
     case TURN_RIGHT_CIRCLE:
         leftRatio = turnRatio;
         rightRatio = OPturnRatio;
-        if ((sensors[5] >= 1) && (sensors[5] <= 3))
+        if ((sensors[4] == 1) && (activeRight >= 2))
             state = CIRCLE;
         break;
 
