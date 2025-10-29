@@ -265,7 +265,10 @@ void Drive()
         if (activeTotal >= 5)
             state = TURN_RIGHT;
         else if (activeTotal == 0)
+        {
             state = SWITCH_RIGHT;
+            prevTime = getTime();
+        }
         break;
 
     case SWITCH_LEFT:
