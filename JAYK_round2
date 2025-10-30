@@ -141,19 +141,6 @@ void stopHandler()
     }
 }
 
-// Kiểm tra tín hiệu nhiễu
-void noiseHandler()
-{
-    if (
-        ((sensors[3] == 8) || (sensors[3] == 12) || (sensors[3] == 16) || (sensors[3] == 24) || (sensors[3] == 48)) &&
-        ((sensors[4] != 8) && (sensors[4] != 12) && (sensors[4] != 16) && (sensors[4] != 24) && (sensors[4] != 48)) &&
-        ((sensors[5] == 8) || (sensors[5] == 12) || (sensors[5] == 16) || (sensors[5] == 24) || (sensors[5] == 48)))
-    {
-        printf("\n\t\tNoise detected, ignoring signal!");
-        noise = true;
-    }
-}
-
 int circleHandler()
 {
     for (int i = 0; i < 6; i++)
@@ -226,7 +213,7 @@ void Drive()
     switch (state)
     {
     case PREPARE_LEFT:
-        noiseHandler();
+        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal == 0)
@@ -236,7 +223,7 @@ void Drive()
         break;
 
     case PREPARE_RIGHT:
-        noiseHandler();
+        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal == 0)
@@ -246,7 +233,7 @@ void Drive()
         break;
 
     case LEFT_TRANSITION:
-        noiseHandler();
+        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal >= 5)
@@ -259,7 +246,7 @@ void Drive()
         break;
 
     case RIGHT_TRANSITION:
-        noiseHandler();
+        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal >= 5)
@@ -310,7 +297,7 @@ void Drive()
         break;
 
     case DEFAULT:
-        noiseHandler();
+        ;
         currWeight = getWeight();
 
         if (currWeight > 0)
@@ -330,7 +317,7 @@ void Drive()
         }
         break;
     case PREPARE_CIRCLE:
-        noiseHandler();
+        ;
         leftRatio = base;
         rightRatio = base;
         currTime = getTime();
@@ -351,7 +338,7 @@ void Drive()
         break;
 
     case CIRCLE:
-        noiseHandler();
+        ;
         currWeight = getWeightCircle();
 
         if (currWeight > 0)
