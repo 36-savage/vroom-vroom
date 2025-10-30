@@ -291,7 +291,6 @@ void Drive()
         break;
 
     case DEFAULT:
-        ;
         currWeight = getWeight();
 
         if (currWeight > 0)
