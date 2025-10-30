@@ -310,7 +310,6 @@ void Drive()
         }
         break;
     case PREPARE_CIRCLE:
-        ;
         leftRatio = base;
         rightRatio = base;
         currTime = getTime();
@@ -331,7 +330,6 @@ void Drive()
         break;
 
     case CIRCLE:
-        ;
         currWeight = getWeightCircle();
 
         if (currWeight > 0)
