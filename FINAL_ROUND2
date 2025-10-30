@@ -50,8 +50,6 @@ int activeRight = 0;
 int activeCenter = 0;
 int activeTotal = 0;
 
-bool noise = false;
-
 // Velocities
 float leftRatio = 0.0;
 float rightRatio = 0.0;
@@ -213,7 +211,6 @@ void Drive()
     switch (state)
     {
     case PREPARE_LEFT:
-        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal == 0)
@@ -223,7 +220,6 @@ void Drive()
         break;
 
     case PREPARE_RIGHT:
-        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal == 0)
@@ -233,7 +229,6 @@ void Drive()
         break;
 
     case LEFT_TRANSITION:
-        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal >= 5)
@@ -246,7 +241,6 @@ void Drive()
         break;
 
     case RIGHT_TRANSITION:
-        ;
         leftRatio = base;
         rightRatio = base;
         if (activeTotal >= 5)
@@ -423,14 +417,6 @@ int main()
         activeCenter = 0;
         activeTotal = 0;
 
-        // Nếu có tín hiệu nhiễu, bỏ qua tín hiệu và trở về trạng thái mặc định
-        if (noise)
-        {
-            leftRatio = base;
-            rightRatio = base;
-            state = DEFAULT;
-            noise = false;
-        }
         // Điều chỉnh tốc độ động cơ
         printf("\tL/R: %f/%f", leftRatio, rightRatio);
         wb_motor_set_velocity(left_motor, leftRatio * MAX_SPEED);
